@@ -56,3 +56,13 @@ python manage.py runserver
 ```
 
 L'API écoute sur http://127.0.0.1:8000. Les routes métier sont sous `/api/v1/`. Le frontend Vite local (`http://localhost:5173`) est autorisé par `CORS_ORIGIN`.
+
+## Déploiement
+
+Le fichier `render.yaml` décrit le service Render `irwinbank-api`. Au branchement du dépôt, renseigner :
+
+- `DATABASE_URL` : PostgreSQL accessible depuis Render
+- `ALLOWED_HOSTS` : `irwinbank-api.onrender.com`
+- `CORS_ORIGIN` : l’adresse Vercel du frontend
+
+`SECRET_KEY` est généré par Render. Les aperçus `*.vercel.app` sont déjà autorisés.
