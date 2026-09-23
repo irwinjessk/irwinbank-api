@@ -1,5 +1,5 @@
 """
-Django settings for config project.
+Django settings for the IrwinBank API.
 """
 
 from pathlib import Path
@@ -55,15 +55,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=config(
-            'DATABASE_URL',
-            default='postgresql://admin@localhost:5432/irwinbank',
-        ),
+    'default': dj_database_url.parse(
+        config('DATABASE_URL', default='postgresql://admin@localhost:5432/irwinbank'),
         conn_max_age=600,
         conn_health_checks=True,
     )
 }
+DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -78,13 +76,11 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ORIGIN',
-    default='http://localhost:5173',
-    cast=Csv(),
-)
+CORS_ALLOWED_ORIGINS = ['http://localhost:5173']
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (

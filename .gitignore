@@ -1,10 +1,46 @@
+# Environnement virtuel
 venv/
+.venv/
+env/
+
+# Python
 __pycache__/
 *.py[cod]
-*.sqlite3
+*.pyc
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Django
 db.sqlite3
-.env
+db.sqlite3-journal
 staticfiles/
+media/
+*.log
+local_settings.py
+
+# Secrets locaux (le modèle .env.example reste versionné)
+.env
+.env.local
+.env.*.local
+
+# Outils et système
 .idea/
 .vscode/
-*.log
+*.swp
+.DS_Store
