@@ -55,4 +55,4 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-L'API écoute sur http://127.0.0.1:8000. Le frontend Vite local (`http://localhost:5173`) est autorisé par CORS.
+L'API écoute sur http://127.0.0.1:8000. Les routes métier sont sous `/api/v1/`. Le frontend Vite local (`http://localhost:5173`) est autorisé par `CORS_ORIGIN`.

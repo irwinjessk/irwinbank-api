@@ -2,6 +2,7 @@
 Django settings for the IrwinBank API.
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -22,6 +23,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'apps.accounts',
+    'apps.banques',
+    'apps.clients',
+    'apps.comptes',
+    'apps.operations',
+    'apps.facturation',
+    'apps.courrier',
+    'apps.audit',
+    'apps.api',
 ]
 
 MIDDLEWARE = [
@@ -80,10 +90,23 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173']
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ORIGIN',
+    default='http://localhost:5173',
+    cast=Csv(),
+)
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(
+        seconds=config('JWT_EXPIRES_IN', default=86400, cast=int),
     ),
 }
