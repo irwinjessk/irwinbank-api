@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import viewsets
 
+from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.clients import ClientSerializer
@@ -13,7 +14,7 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = self.restreindre(Client.objects.select_related('banque'))
-        banque = self.request.query_params.get('banque')
+        banque = filtres.entier(self.request.query_params, 'banque')
         nom = self.request.query_params.get('nom')
         email = self.request.query_params.get('email')
         numero = self.request.query_params.get('numero_client')

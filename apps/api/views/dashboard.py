@@ -3,6 +3,7 @@ from django.db.models.functions import TruncDate
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.api import filtres
 from apps.api.perimetre import banque_agent
 from apps.api.permissions import IsPersonnel
 from apps.banques.models import Banque
@@ -30,10 +31,12 @@ class DashboardView(APIView):
         if agent_banque is not None:
             transactions = transactions.filter(compte__client__banque_id=agent_banque)
             comptes = comptes.filter(client__banque_id=agent_banque)
-        if params.get('date_min'):
-            transactions = transactions.filter(date_transaction__date__gte=params['date_min'])
-        if params.get('date_max'):
-            transactions = transactions.filter(date_transaction__date__lte=params['date_max'])
+        date_min = filtres.jour(params, 'date_min')
+        date_max = filtres.jour(params, 'date_max')
+        if date_min:
+            transactions = transactions.filter(date_transaction__date__gte=date_min)
+        if date_max:
+            transactions = transactions.filter(date_transaction__date__lte=date_max)
 
         par_type = {
             ligne['type_transaction']: ligne

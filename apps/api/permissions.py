@@ -21,8 +21,10 @@ class IsPersonnel(BasePermission):
         return bool(request.user and request.user.is_authenticated and role_de(request.user) is not None)
 
 
-class IsAdminOrReadOnly(IsPersonnel):
+class IsAdminOrReadOnly(BasePermission):
     def has_permission(self, request, view):
-        if not super().has_permission(request, view):
+        if not IsPersonnel().has_permission(request, view):
+            self.message = IsPersonnel.message
             return False
+        self.message = 'Action réservée à un administrateur.'
         return request.method in SAFE_METHODS or role_de(request.user) == Role.ADMIN

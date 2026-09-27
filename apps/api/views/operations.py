@@ -2,6 +2,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin, banque_agent
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.operations import TransactionSerializer
@@ -26,24 +27,31 @@ class TransactionViewSet(
             Transaction.objects.select_related('compte', 'compte_contrepartie').order_by('-date_transaction', '-id')
         )
         params = self.request.query_params
-        if params.get('compte'):
-            queryset = queryset.filter(compte_id=params['compte'])
+        compte = filtres.entier(params, 'compte')
+        banque = filtres.entier(params, 'banque')
+        date_min = filtres.jour(params, 'date_min')
+        date_max = filtres.jour(params, 'date_max')
+        montant_min = filtres.decimal(params, 'montant_min')
+        montant_max = filtres.decimal(params, 'montant_max')
+        if compte:
+            queryset = queryset.filter(compte_id=compte)
         if params.get('type'):
             queryset = queryset.filter(type_transaction=params['type'])
-        if params.get('banque') and banque_agent(self.request.user) is None:
-            queryset = queryset.filter(compte__client__banque_id=params['banque'])
-        if params.get('date_min'):
-            queryset = queryset.filter(date_transaction__date__gte=params['date_min'])
-        if params.get('date_max'):
-            queryset = queryset.filter(date_transaction__date__lte=params['date_max'])
-        if params.get('montant_min'):
-            queryset = queryset.filter(montant__gte=params['montant_min'])
-        if params.get('montant_max'):
-            queryset = queryset.filter(montant__lte=params['montant_max'])
+        if banque and banque_agent(self.request.user) is None:
+            queryset = queryset.filter(compte__client__banque_id=banque)
+        if date_min:
+            queryset = queryset.filter(date_transaction__date__gte=date_min)
+        if date_max:
+            queryset = queryset.filter(date_transaction__date__lte=date_max)
+        if montant_min is not None:
+            queryset = queryset.filter(montant__gte=montant_min)
+        if montant_max is not None:
+            queryset = queryset.filter(montant__lte=montant_max)
         return queryset
 
     def create(self, request):
-        compte_id = request.data.get('compte')
+        compte_id = filtres.entier(request.data, 'compte')
+        contrepartie_id = filtres.entier(request.data, 'compte_contrepartie')
         agent_banque = banque_agent(request.user)
         if agent_banque is not None and compte_id:
             if not Compte.objects.filter(pk=compte_id, client__banque_id=agent_banque).exists():
@@ -53,7 +61,7 @@ class TransactionViewSet(
             compte_id=compte_id,
             montant=request.data.get('montant'),
             description=request.data.get('description', ''),
-            compte_contrepartie_id=request.data.get('compte_contrepartie'),
+            compte_contrepartie_id=contrepartie_id,
             acteur=request.user,
         )
         return Response(self.get_serializer(mouvements, many=True).data, status=status.HTTP_201_CREATED)

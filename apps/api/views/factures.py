@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.factures import FactureSerializer
@@ -20,8 +21,9 @@ class FactureViewSet(PerimetreMixin, viewsets.ReadOnlyModelViewSet):
             Facture.objects.select_related('transaction', 'transaction__compte', 'transaction__compte__client__banque')
         )
         params = self.request.query_params
-        if params.get('transaction'):
-            queryset = queryset.filter(transaction_id=params['transaction'])
+        transaction = filtres.entier(params, 'transaction')
+        if transaction:
+            queryset = queryset.filter(transaction_id=transaction)
         if params.get('statut_envoi'):
             queryset = queryset.filter(statut_envoi=params['statut_envoi'])
         if params.get('numero_facture'):

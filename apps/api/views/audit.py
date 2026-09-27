@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 
+from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.audit import JournalAuditSerializer
@@ -17,8 +18,10 @@ class JournalAuditViewSet(PerimetreMixin, viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(entite=params['entite'])
         if params.get('action'):
             queryset = queryset.filter(action__icontains=params['action'])
-        if params.get('date_min'):
-            queryset = queryset.filter(cree_le__date__gte=params['date_min'])
-        if params.get('date_max'):
-            queryset = queryset.filter(cree_le__date__lte=params['date_max'])
+        date_min = filtres.jour(params, 'date_min')
+        date_max = filtres.jour(params, 'date_max')
+        if date_min:
+            queryset = queryset.filter(cree_le__date__gte=date_min)
+        if date_max:
+            queryset = queryset.filter(cree_le__date__lte=date_max)
         return queryset

@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.comptes import CompteSerializer
@@ -16,7 +17,7 @@ class CompteViewSet(PerimetreMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = self.restreindre(Compte.objects.select_related('client', 'client__banque'))
-        client = self.request.query_params.get('client')
+        client = filtres.entier(self.request.query_params, 'client')
         if client:
             queryset = queryset.filter(client_id=client)
         return queryset
