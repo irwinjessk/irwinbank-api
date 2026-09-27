@@ -1,19 +1,21 @@
 from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.api.perimetre import PerimetreMixin
+from apps.api.permissions import IsAdminOrReadOnly
 from apps.api.serializers.banques import BanqueSerializer
 from apps.banques.models import Banque
 
 
-class BanqueViewSet(viewsets.ModelViewSet):
+class BanqueViewSet(PerimetreMixin, viewsets.ModelViewSet):
     serializer_class = BanqueSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
+    champ_banque = 'id'
 
     def get_queryset(self):
-        queryset = Banque.objects.annotate(nombre_clients=Count('clients'))
+        queryset = self.restreindre(Banque.objects.annotate(nombre_clients=Count('clients')))
         pays = self.request.query_params.get('pays')
         ville = self.request.query_params.get('ville')
         if pays:

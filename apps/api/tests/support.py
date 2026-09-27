@@ -14,6 +14,12 @@ class ApiTestCase(APITestCase):
         Profil.objects.create(user=self.user, role=Role.ADMIN)
         self.client.force_authenticate(self.user)
 
+    def connecter_agent(self, banque):
+        agent = get_user_model().objects.create_user(username=f'agent{banque.id}', password='MotDePasse2026!')
+        Profil.objects.create(user=agent, role=Role.AGENT, banque=banque)
+        self.client.force_authenticate(agent)
+        return agent
+
     def creer_banque(self, nom='ADA BANK', pays='Côte d\'Ivoire', ville='Abidjan'):
         return Banque.objects.create(nom=nom, pays=pays, ville=ville)
 

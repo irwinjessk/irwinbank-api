@@ -7,8 +7,8 @@ from rest_framework.exceptions import ValidationError
 from apps.audit.services.journal import tracer
 from apps.comptes.enums.compte import StatutCompte
 from apps.comptes.models import Compte
-from apps.courrier.services.envoi import envoyer
 from apps.facturation.models import Facture
+from apps.facturation.services.envoi_facture import envoyer_facture
 from apps.operations.enums.transaction import Sens, TypeTransaction
 from apps.operations.models import Transaction
 
@@ -39,7 +39,7 @@ def _facture(mouvement, compte):
         email_destinataire=compte.client.email,
         montant=mouvement.montant,
     )
-    envoyer(compte.client.email, f'Facture {facture.numero_facture}', f'Montant {mouvement.montant}')
+    db_transaction.on_commit(lambda: envoyer_facture(facture))
     return facture
 
 

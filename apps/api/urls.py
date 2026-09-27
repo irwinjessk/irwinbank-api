@@ -7,6 +7,7 @@ from apps.api.views.auth import LogoutView, MeView
 from apps.api.views.banques import BanqueViewSet
 from apps.api.views.clients import ClientViewSet
 from apps.api.views.comptes import CompteViewSet
+from apps.api.views.dashboard import DashboardView
 from apps.api.views.factures import FactureViewSet
 from apps.api.views.operations import TransactionViewSet
 
@@ -22,5 +23,6 @@ urlpatterns = [
     path('auth/login', TokenObtainPairView.as_view(), name='login'),
     path('auth/logout', LogoutView.as_view(), name='logout'),
     path('auth/me', MeView.as_view(), name='me'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('', include(router.urls)),
 ]
