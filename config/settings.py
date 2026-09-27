@@ -2,6 +2,7 @@
 Django settings for the IrwinBank API.
 """
 
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -73,6 +74,14 @@ DATABASES = {
     )
 }
 DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

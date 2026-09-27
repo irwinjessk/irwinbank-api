@@ -4,7 +4,7 @@ from apps.banques.models import Banque
 
 
 class BanqueSerializer(serializers.ModelSerializer):
-    nombre_clients = serializers.IntegerField(read_only=True)
+    nombre_clients = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Banque

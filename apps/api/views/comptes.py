@@ -9,9 +9,15 @@ from apps.comptes.services.cloture import cloturer
 
 
 class CompteViewSet(viewsets.ModelViewSet):
-    queryset = Compte.objects.select_related('client')
     serializer_class = CompteSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Compte.objects.select_related('client', 'client__banque')
+        client = self.request.query_params.get('client')
+        if client:
+            queryset = queryset.filter(client_id=client)
+        return queryset
 
     @action(detail=True, methods=['post'])
     def cloturer(self, request, pk=None):

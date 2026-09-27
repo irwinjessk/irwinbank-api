@@ -13,7 +13,14 @@ class BanqueViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Banque.objects.annotate(nombre_clients=Count('clients'))
+        queryset = Banque.objects.annotate(nombre_clients=Count('clients'))
+        pays = self.request.query_params.get('pays')
+        ville = self.request.query_params.get('ville')
+        if pays:
+            queryset = queryset.filter(pays__icontains=pays)
+        if ville:
+            queryset = queryset.filter(ville__icontains=ville)
+        return queryset
 
     @action(detail=False, methods=['get'])
     def top(self, request):
