@@ -20,3 +20,7 @@ services:
         sync: false
       - key: JWT_EXPIRES_IN
         value: "86400"
+      - key: DEMO_USERS
+        value: "True"
+      - key: DEMO_PASSWORD
+        sync: false
