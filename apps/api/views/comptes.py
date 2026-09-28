@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,6 +15,10 @@ from apps.clients.models import Client
 from apps.comptes.enums.compte import StatutCompte
 from apps.comptes.models import Compte
 from apps.comptes.services.cloture import cloturer
+from apps.audit.services.formats import montant_fr
+from apps.audit.services.journal import tracer
+from apps.operations.enums.transaction import TypeTransaction
+from apps.operations.services.enregistrer import enregistrer
 
 
 class CompteViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
@@ -61,9 +66,30 @@ class CompteViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
         verifier_agence(self.request.user, client.agence_id)
         if client.archive:
             raise Conflit('Ce client est archivé : restaurez sa fiche avant d’ouvrir un compte.')
-        serializer.save()
+        solde_initial = serializer.validated_data.pop('solde_initial', None) or Decimal('0')
+        with transaction.atomic():
+            compte = serializer.save()
+            tracer(
+                acteur=self.request.user,
+                action='compte.ouvert',
+                entite='compte',
+                entite_id=compte.id,
+                resume=f'Ouverture de {compte.numero_compte} ({compte.get_type_compte_display().lower()}) '
+                       f'pour {client.numero_client}, solde initial {montant_fr(solde_initial)}',
+                banque=client.banque,
+            )
+            if solde_initial > 0:
+                enregistrer(
+                    type_transaction=TypeTransaction.DEPOT,
+                    compte_id=compte.id,
+                    montant=solde_initial,
+                    description='Dépôt initial à l’ouverture',
+                    acteur=self.request.user,
+                )
+                compte.refresh_from_db()
 
     def perform_update(self, serializer):
+        serializer.validated_data.pop('solde_initial', None)
         verifier_agence(self.request.user, serializer.instance.client.agence_id)
         client = serializer.validated_data.get('client')
         if client:

@@ -16,6 +16,23 @@ class ComptesApiTests(ApiTestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['statut'], 'OUVERT')
         self.assertEqual(response.data['solde'], '0.00')
+        self.assertFalse(Transaction.objects.exists())
+        self.assertTrue(JournalAudit.objects.filter(action='compte.ouvert', entite_id=response.data['id']).exists())
+
+    def test_ouverture_avec_solde_initial(self):
+        response = self.client.post('/api/v1/comptes/', {'client': self.titulaire.id, 'type_compte': 'COURANT', 'solde_initial': '150000'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['solde'], '150000.00')
+        depot = Transaction.objects.get(compte_id=response.data['id'])
+        self.assertEqual((depot.type_transaction, depot.montant), ('DEPOT', Decimal('150000.00')))
+        self.assertTrue(Facture.objects.filter(transaction=depot).exists())
+        self.assertIn('150\u00a0000,00\u00a0F\u00a0CFA', JournalAudit.objects.get(action='compte.ouvert').resume)
+
+    def test_solde_initial_negatif_refuse_sans_rien_creer(self):
+        response = self.client.post('/api/v1/comptes/', {'client': self.titulaire.id, 'type_compte': 'COURANT', 'solde_initial': '-10'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['solde_initial'], ['Le solde initial ne peut pas être négatif.'])
+        self.assertFalse(self.titulaire.comptes.exists())
 
     def cloturer(self, compte, **data):
         return self.client.post(f'/api/v1/comptes/{compte.id}/cloturer/', data, format='json')
