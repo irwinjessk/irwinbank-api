@@ -2,6 +2,7 @@ from django.db import transaction as db_transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.audit.services.formats import montant_fr
 from apps.audit.services.journal import tracer
 from apps.comptes.enums.compte import ModeRestitution, MotifCloture, StatutCompte
 from apps.comptes.models import Compte
@@ -43,7 +44,7 @@ def cloturer(compte, *, motif, mode_restitution=None, compte_destinataire_id=Non
                 description=f'Solde de clôture ({ModeRestitution(mode_restitution).label.lower()})',
                 acteur=acteur,
             )
-        restitution = f', {solde} restitués par {ModeRestitution(mode_restitution).label.lower()}'
+        restitution = f', {montant_fr(solde)} restitués par {ModeRestitution(mode_restitution).label.lower()}'
         compte.refresh_from_db()
 
     if compte.solde != 0:

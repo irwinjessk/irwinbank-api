@@ -15,4 +15,11 @@ class BanqueSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if not self.instance and not attrs.get('email'):
             raise serializers.ValidationError({'email': ['L’e-mail de la banque est obligatoire pour lui envoyer son message de bienvenue.']})
+        if 'nom' in attrs:
+            attrs['nom'] = attrs['nom'].strip()
+            doublons = Banque.objects.filter(nom__iexact=attrs['nom'])
+            if self.instance:
+                doublons = doublons.exclude(pk=self.instance.pk)
+            if doublons.exists():
+                raise serializers.ValidationError({'nom': ['Une banque porte déjà ce nom.']})
         return attrs

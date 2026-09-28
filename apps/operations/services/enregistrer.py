@@ -4,6 +4,7 @@ from uuid import uuid4
 from django.db import transaction as db_transaction
 from rest_framework.exceptions import ValidationError
 
+from apps.audit.services.formats import montant_fr
 from apps.audit.services.journal import tracer
 from apps.comptes.enums.compte import StatutCompte
 from apps.comptes.models import Compte
@@ -71,7 +72,7 @@ def enregistrer(*, type_transaction, compte_id, montant, description='', compte_
         compte.solde += montant
         compte.save(update_fields=['solde'])
         _facture(mouvement, compte)
-        _tracer(acteur, 'transaction.deposee', mouvement, f'Dépôt de {montant} sur {compte.numero_compte}')
+        _tracer(acteur, 'transaction.deposee', mouvement, f'Dépôt de {montant_fr(montant)} sur {compte.numero_compte}')
         return [mouvement]
 
     if type_transaction == TypeTransaction.RETRAIT:
@@ -88,7 +89,7 @@ def enregistrer(*, type_transaction, compte_id, montant, description='', compte_
         compte.solde -= montant
         compte.save(update_fields=['solde'])
         _facture(mouvement, compte)
-        _tracer(acteur, 'transaction.retiree', mouvement, f'Retrait de {montant} sur {compte.numero_compte}')
+        _tracer(acteur, 'transaction.retiree', mouvement, f'Retrait de {montant_fr(montant)} sur {compte.numero_compte}')
         return [mouvement]
 
     if type_transaction != TypeTransaction.VIREMENT:
@@ -137,5 +138,5 @@ def enregistrer(*, type_transaction, compte_id, montant, description='', compte_
     source.save(update_fields=['solde'])
     destinataire.save(update_fields=['solde'])
     _facture(debit, source)
-    _tracer(acteur, 'transaction.viree', debit, f'Virement de {montant} vers {destinataire.numero_compte}')
+    _tracer(acteur, 'transaction.viree', debit, f'Virement de {montant_fr(montant)} vers {destinataire.numero_compte}')
     return [debit, credit]

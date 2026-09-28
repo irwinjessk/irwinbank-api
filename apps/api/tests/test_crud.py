@@ -10,6 +10,19 @@ class CrudBanquesTests(ApiTestCase):
         response = self.client.patch(f'/api/v1/banques/{banque.id}/', {'ville': 'Yamoussoukro', 'actif': False}, format='json')
         self.assertEqual((response.status_code, response.data['ville'], response.data['actif']), (200, 'Yamoussoukro', False))
 
+    def test_nom_de_banque_unique_sans_tenir_compte_de_la_casse(self):
+        banque = self.creer_banque(nom='ADA Lomé')
+        response = self.client.post('/api/v1/banques/', {'nom': '  ada lomé ', 'pays': 'Togo', 'ville': 'Lomé', 'email': 'x@example.com'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['nom'], ['Une banque porte déjà ce nom.'])
+        self.assertEqual(self.client.patch(f'/api/v1/banques/{banque.id}/', {'nom': 'ADA Lomé', 'actif': False}, format='json').status_code, 200)
+
+    def test_montants_du_journal_au_format_francais(self):
+        compte = self.creer_compte(self.creer_client(self.creer_banque()))
+        self.client.post('/api/v1/transactions/', {'type_transaction': 'DEPOT', 'compte': compte.id, 'montant': '20000'}, format='json')
+        resume = JournalAudit.objects.get(action='transaction.deposee').resume
+        self.assertIn('20\u00a0000,00\u00a0F\u00a0CFA', resume)
+
     def test_aucune_suppression_definitive(self):
         banque = self.creer_banque()
         client = self.creer_client(banque)
@@ -100,6 +113,12 @@ class CrudClientsTests(ApiTestCase):
         client = self.creer_client(self.banque)
         self.connecter_agent(self.banque, self.creer_agence(self.banque))
         self.assertEqual(self.archiver(client).status_code, 403)
+
+    def test_message_clair_pour_un_email_deja_utilise(self):
+        banque = self.creer_banque()
+        self.creer_client(banque)
+        response = self.client.post('/api/v1/clients/', {'nom': 'Autre', 'prenom': 'Aya', 'email': 'aya@example.com', 'banque': banque.id}, format='json')
+        self.assertEqual(response.data['email'], ['Cette adresse e-mail est déjà utilisée par un autre client.'])
 
     def test_recherche_par_email_et_numero(self):
         client = self.creer_client(self.banque, email='unique@example.com')

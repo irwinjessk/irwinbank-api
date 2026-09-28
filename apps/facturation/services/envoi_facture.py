@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from apps.audit.services.formats import montant_fr
 from apps.courrier.services.envoi import envoyer
 from apps.facturation.enums.facture import StatutEnvoi
 
@@ -13,7 +14,7 @@ def envoyer_facture(facture):
         f'a été enregistrée.\n\n'
         f'Facture : {facture.numero_facture}\n'
         f'Compte : {transaction.compte.numero_compte}\n'
-        f'Montant : {facture.montant} F CFA\n\n'
+        f'Montant : {montant_fr(facture.montant)}\n\n'
         f'ADA BANK'
     )
     statut = envoyer(facture.email_destinataire, f'ADA BANK · Facture {facture.numero_facture}', corps)

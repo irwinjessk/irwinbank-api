@@ -1,10 +1,13 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from apps.accounts.enums.role import Role
 from apps.accounts.services.espace_client import etat_espace
 from apps.api.perimetre import agence_agent, role_de, verifier_banque
 from apps.banques.models.agence import AGENCE_PRINCIPALE, Agence
 from apps.clients.models import Client
+
+EMAIL_DEJA_UTILISE = 'Cette adresse e-mail est déjà utilisée par un autre client.'
 
 
 class ClientSerializer(serializers.ModelSerializer):
@@ -23,6 +26,7 @@ class ClientSerializer(serializers.ModelSerializer):
             'archive', 'date_archivage', 'archive_par_nom', 'motif_archivage', 'espace',
         )
         read_only_fields = ('numero_client', 'date_inscription', 'archive', 'date_archivage', 'motif_archivage')
+        extra_kwargs = {'email': {'validators': [UniqueValidator(Client.objects.all(), message=EMAIL_DEJA_UTILISE)]}}
 
     def get_espace(self, client):
         return etat_espace(client)

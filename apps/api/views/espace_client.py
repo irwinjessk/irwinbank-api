@@ -5,11 +5,13 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.validators import UniqueValidator
 from rest_framework.views import APIView
 
 from apps.accounts.services.espace_client import ActivationRefusee, activer_espace
 from apps.api.perimetre import client_de
 from apps.api.permissions import IsClient
+from apps.api.serializers.clients import EMAIL_DEJA_UTILISE
 from apps.api.views.comptes import CompteViewSet
 from apps.api.views.factures import FactureViewSet
 from apps.api.views.operations import TransactionViewSet
@@ -62,6 +64,8 @@ class EspaceProfilSerializer(serializers.ModelSerializer):
             'agence_nom', 'agence_ville', 'conseiller_nom', 'date_inscription',
         )
         read_only_fields = ('nom', 'prenom', 'numero_client', 'date_inscription')
+        extra_kwargs = {'email': {'validators': [UniqueValidator(Client.objects.all(), message=EMAIL_DEJA_UTILISE)]}}
+        extra_kwargs = {'email': {'validators': [UniqueValidator(Client.objects.all(), message=EMAIL_DEJA_UTILISE)]}}
 
 
 class EspaceProfilView(APIView):
