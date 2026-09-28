@@ -34,5 +34,11 @@ class CompteViewSet(PerimetreMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def cloturer(self, request, pk=None):
-        compte = cloturer(self.get_object())
+        compte = cloturer(
+            self.get_object(),
+            motif=request.data.get('motif'),
+            mode_restitution=request.data.get('mode_restitution'),
+            compte_destinataire_id=filtres.entier(request.data, 'compte_destinataire'),
+            acteur=request.user,
+        )
         return Response(self.get_serializer(compte).data)
