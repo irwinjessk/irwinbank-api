@@ -3,7 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.api import filtres
-from apps.api.perimetre import PerimetreMixin, banque_agent
+from apps.api.perimetre import PerimetreMixin, agence_agent, banque_agent
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.operations import TransactionSerializer
 from apps.comptes.models import Compte
@@ -57,8 +57,11 @@ class TransactionViewSet(
         contrepartie_id = filtres.entier(request.data, 'compte_contrepartie')
         agent_banque = banque_agent(request.user)
         if agent_banque is not None and compte_id:
-            if not Compte.objects.filter(pk=compte_id, client__banque_id=agent_banque).exists():
+            compte = Compte.objects.filter(pk=compte_id, client__banque_id=agent_banque).select_related('client').first()
+            if compte is None:
                 raise PermissionDenied('Ce compte est hors de votre banque.')
+            if request.data.get('type_transaction') == 'VIREMENT' and compte.client.agence_id != agence_agent(request.user):
+                raise PermissionDenied('Un virement doit être initié par l’agence du client : seuls dépôts et retraits sont possibles au guichet.')
         mouvements = enregistrer(
             type_transaction=request.data.get('type_transaction'),
             compte_id=compte_id,

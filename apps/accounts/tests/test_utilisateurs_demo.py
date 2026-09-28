@@ -12,10 +12,14 @@ class UtilisateursDemoTests(TestCase):
     def test_signal_cree_les_comptes_une_seule_fois(self):
         utilisateurs_demo_apres_migration(sender=None)
         utilisateurs_demo_apres_migration(sender=None)
-        self.assertEqual(get_user_model().objects.filter(username__in=['admin_demo', 'agent_abidjan', 'agent_dakar']).count(), 3)
+        self.assertEqual(
+            get_user_model().objects.filter(username__in=['admin_demo', 'agent_abidjan', 'agent_cocody', 'agent_dakar']).count(), 4
+        )
         self.assertEqual(Banque.objects.filter(nom__startswith='ADA ').count(), 2)
         agent = Profil.objects.get(user__username='agent_abidjan')
-        self.assertEqual((agent.role, agent.banque.nom), ('AGENT', 'ADA Abidjan'))
+        self.assertEqual((agent.role, agent.banque.nom, agent.agence.nom), ('AGENT', 'ADA Abidjan', 'Agence principale'))
+        cocody = Profil.objects.get(user__username='agent_cocody')
+        self.assertEqual((cocody.banque.nom, cocody.agence.nom), ('ADA Abidjan', 'Cocody'))
         self.assertTrue(get_user_model().objects.get(username='admin_demo').is_superuser)
 
     @override_settings(DEMO_USERS=True, DEMO_PASSWORD='DemoPass!2026')

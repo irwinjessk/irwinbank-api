@@ -31,6 +31,10 @@ class DashboardView(APIView):
         if agent_banque is not None:
             transactions = transactions.filter(compte__client__banque_id=agent_banque)
             comptes = comptes.filter(client__banque_id=agent_banque)
+        agence = filtres.entier(params, 'agence')
+        if agence:
+            transactions = transactions.filter(compte__client__agence_id=agence)
+            comptes = comptes.filter(client__agence_id=agence)
         date_min = filtres.jour(params, 'date_min')
         date_max = filtres.jour(params, 'date_max')
         if date_min:

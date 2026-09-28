@@ -3,17 +3,23 @@ from django.db import transaction
 
 from apps.accounts.enums.role import Role
 from apps.accounts.models import Profil
-from apps.banques.models import Banque
+from apps.banques.models import Agence, Banque
+from apps.banques.models.agence import AGENCE_PRINCIPALE
 
 BANQUES_DEMO = (
     {'nom': 'ADA Abidjan', 'pays': "Côte d'Ivoire", 'ville': 'Abidjan'},
     {'nom': 'ADA Dakar', 'pays': 'Sénégal', 'ville': 'Dakar'},
 )
 
+AGENCES_DEMO = (
+    {'banque': 'ADA Abidjan', 'nom': 'Cocody', 'ville': 'Abidjan'},
+)
+
 UTILISATEURS_DEMO = (
-    {'username': 'admin_demo', 'role': Role.ADMIN, 'banque': None, 'staff': True},
-    {'username': 'agent_abidjan', 'role': Role.AGENT, 'banque': 'ADA Abidjan', 'staff': False},
-    {'username': 'agent_dakar', 'role': Role.AGENT, 'banque': 'ADA Dakar', 'staff': False},
+    {'username': 'admin_demo', 'role': Role.ADMIN, 'banque': None, 'agence': None, 'staff': True},
+    {'username': 'agent_abidjan', 'role': Role.AGENT, 'banque': 'ADA Abidjan', 'agence': AGENCE_PRINCIPALE, 'staff': False},
+    {'username': 'agent_cocody', 'role': Role.AGENT, 'banque': 'ADA Abidjan', 'agence': 'Cocody', 'staff': False},
+    {'username': 'agent_dakar', 'role': Role.AGENT, 'banque': 'ADA Dakar', 'agence': AGENCE_PRINCIPALE, 'staff': False},
 )
 
 
@@ -24,6 +30,11 @@ def creer_utilisateurs_demo(mot_de_passe):
     for donnees in BANQUES_DEMO:
         banque, _ = Banque.objects.get_or_create(nom=donnees['nom'], defaults=donnees)
         banques[banque.nom] = banque
+        Agence.objects.get_or_create(banque=banque, nom=AGENCE_PRINCIPALE, defaults={'ville': banque.ville})
+    for donnees in AGENCES_DEMO:
+        Agence.objects.get_or_create(
+            banque=banques[donnees['banque']], nom=donnees['nom'], defaults={'ville': donnees['ville']}
+        )
 
     User = get_user_model()
     for donnees in UTILISATEURS_DEMO:
@@ -38,6 +49,7 @@ def creer_utilisateurs_demo(mot_de_passe):
             defaults={
                 'role': donnees['role'],
                 'banque': banques.get(donnees['banque']),
+                'agence': Agence.objects.filter(banque__nom=donnees['banque'], nom=donnees['agence']).first(),
             },
         )
     return [donnees['username'] for donnees in UTILISATEURS_DEMO]

@@ -19,6 +19,20 @@ def banque_agent(user):
     return None
 
 
+def agence_agent(user):
+    """Agence de l'agent, ou None pour un administrateur."""
+    if role_de(user) == Role.AGENT:
+        return user.profil.agence_id
+    return None
+
+
+def verifier_agence(user, agence_id):
+    """Gestion (fiche, comptes, virements) réservée à l'agence du client."""
+    agent_agence = agence_agent(user)
+    if role_de(user) == Role.AGENT and agent_agence != agence_id:
+        raise PermissionDenied('Ce client est rattaché à une autre agence : seules les opérations de guichet sont possibles.')
+
+
 def verifier_banque(user, banque_id):
     agent_banque = banque_agent(user)
     if agent_banque is not None and int(banque_id) != agent_banque:

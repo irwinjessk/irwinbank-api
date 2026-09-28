@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from apps.clients.services.numeros import generer_numero
@@ -12,6 +13,18 @@ class Client(models.Model):
         'banques.Banque',
         on_delete=models.PROTECT,
         related_name='clients',
+    )
+    agence = models.ForeignKey(
+        'banques.Agence',
+        on_delete=models.PROTECT,
+        related_name='clients',
+    )
+    conseiller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='clients_suivis',
     )
     date_inscription = models.DateTimeField(auto_now_add=True)
 

@@ -5,6 +5,6 @@ from apps.clients.models import Client
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('numero_client', 'nom', 'prenom', 'email', 'banque')
+    list_display = ('numero_client', 'nom', 'prenom', 'email', 'banque', 'agence', 'conseiller')
     search_fields = ('nom', 'prenom', 'email', 'numero_client')
-    list_filter = ('banque',)
+    list_filter = ('banque', 'agence')

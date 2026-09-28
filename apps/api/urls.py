@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.api.views.agences import AgenceViewSet
 from apps.api.views.audit import JournalAuditViewSet
 from apps.api.views.auth import LogoutView, MeView
 from apps.api.views.banques import BanqueViewSet
@@ -13,6 +14,7 @@ from apps.api.views.operations import TransactionViewSet
 
 router = DefaultRouter()
 router.register('banques', BanqueViewSet, basename='banque')
+router.register('agences', AgenceViewSet, basename='agence')
 router.register('clients', ClientViewSet, basename='client')
 router.register('comptes', CompteViewSet, basename='compte')
 router.register('transactions', TransactionViewSet, basename='transaction')

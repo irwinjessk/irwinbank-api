@@ -5,5 +5,5 @@ from apps.accounts.models import Profil
 
 @admin.register(Profil)
 class ProfilAdmin(admin.ModelAdmin):
-    list_display = ('user', 'role', 'banque')
-    list_filter = ('role',)
+    list_display = ('user', 'role', 'banque', 'agence')
+    list_filter = ('role', 'banque')
