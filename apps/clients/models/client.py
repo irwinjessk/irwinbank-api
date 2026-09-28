@@ -27,6 +27,16 @@ class Client(models.Model):
         related_name='clients_suivis',
     )
     date_inscription = models.DateTimeField(auto_now_add=True)
+    archive = models.BooleanField(default=False, db_index=True)
+    date_archivage = models.DateTimeField(null=True, blank=True)
+    archive_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='clients_archives',
+    )
+    motif_archivage = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = 'client'

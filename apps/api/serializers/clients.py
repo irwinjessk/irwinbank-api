@@ -11,14 +11,16 @@ class ClientSerializer(serializers.ModelSerializer):
     agence = serializers.PrimaryKeyRelatedField(queryset=Agence.objects.all(), required=False)
     agence_nom = serializers.CharField(source='agence.nom', read_only=True)
     conseiller_nom = serializers.CharField(source='conseiller.username', read_only=True, default=None)
+    archive_par_nom = serializers.CharField(source='archive_par.username', read_only=True, default=None)
 
     class Meta:
         model = Client
         fields = (
             'id', 'nom', 'prenom', 'email', 'numero_client', 'banque', 'banque_nom',
             'agence', 'agence_nom', 'conseiller', 'conseiller_nom', 'date_inscription',
+            'archive', 'date_archivage', 'archive_par_nom', 'motif_archivage',
         )
-        read_only_fields = ('numero_client', 'date_inscription')
+        read_only_fields = ('numero_client', 'date_inscription', 'archive', 'date_archivage', 'motif_archivage')
 
     def validate_banque(self, banque):
         if self.instance and banque != self.instance.banque:

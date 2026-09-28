@@ -28,10 +28,9 @@ class ErreursApiTests(ApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('compte', response.data)
 
-    def test_suppression_protegee_renvoie_409(self):
+    def test_suppression_definitive_interdite(self):
         response = self.client.delete(f'/api/v1/banques/{self.banque.id}/')
-        self.assertEqual(response.status_code, 409)
-        self.assertIn('désactivez-la', response.data['detail'])
+        self.assertEqual(response.status_code, 405)
 
     def test_message_agent_sur_action_admin(self):
         self.connecter_agent(self.banque)

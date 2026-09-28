@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.api import filtres
+from apps.api.exceptions import Conflit
 from apps.api.perimetre import PerimetreMixin, verifier_agence, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.comptes import CompteSerializer
@@ -14,6 +15,7 @@ class CompteViewSet(PerimetreMixin, viewsets.ModelViewSet):
     serializer_class = CompteSerializer
     permission_classes = [IsPersonnel]
     champ_banque = 'client__banque_id'
+    http_method_names = ['get', 'post', 'patch', 'put', 'head', 'options']
 
     def get_queryset(self):
         queryset = self.restreindre(Compte.objects.select_related('client', 'client__banque', 'client__agence'))
@@ -26,6 +28,8 @@ class CompteViewSet(PerimetreMixin, viewsets.ModelViewSet):
         client = serializer.validated_data['client']
         verifier_banque(self.request.user, client.banque_id)
         verifier_agence(self.request.user, client.agence_id)
+        if client.archive:
+            raise Conflit('Ce client est archivé : restaurez sa fiche avant d’ouvrir un compte.')
         serializer.save()
 
     def perform_update(self, serializer):
@@ -35,10 +39,6 @@ class CompteViewSet(PerimetreMixin, viewsets.ModelViewSet):
             verifier_banque(self.request.user, client.banque_id)
             verifier_agence(self.request.user, client.agence_id)
         serializer.save()
-
-    def perform_destroy(self, instance):
-        verifier_agence(self.request.user, instance.client.agence_id)
-        instance.delete()
 
     @action(detail=True, methods=['post'])
     def cloturer(self, request, pk=None):

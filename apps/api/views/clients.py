@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -13,11 +14,13 @@ from apps.api.serializers.clients import ClientSerializer
 from apps.audit.services.journal import tracer
 from apps.banques.models import Agence
 from apps.clients.models import Client
+from apps.comptes.enums.compte import StatutCompte
 
 
 class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
     serializer_class = ClientSerializer
     permission_classes = [IsPersonnel]
+    http_method_names = ['get', 'post', 'patch', 'put', 'head', 'options']
 
     def get_queryset(self):
         queryset = self.restreindre(Client.objects.select_related('banque', 'agence', 'conseiller'))
@@ -27,6 +30,12 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
         nom = params.get('nom')
         email = params.get('email')
         numero = params.get('numero_client')
+        if self.action == 'list':
+            statut = params.get('statut', 'actifs')
+            if statut == 'archives':
+                queryset = queryset.filter(archive=True)
+            elif statut != 'tous':
+                queryset = queryset.filter(archive=False)
         if banque:
             queryset = queryset.filter(banque_id=banque)
         if agence:
@@ -50,6 +59,7 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         client = serializer.instance
         verifier_agence(self.request.user, client.agence_id)
+        self.refuser_si_archive(client)
         champs = ('nom', 'prenom', 'email', 'conseiller')
         avant = {champ: getattr(client, champ) for champ in champs}
         client = serializer.save()
@@ -61,18 +71,46 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
         if changements:
             self.tracer(client, 'client.modifie', f'{client.numero_client} · ' + ', '.join(changements))
 
-    def perform_destroy(self, instance):
-        verifier_agence(self.request.user, instance.agence_id)
-        if instance.comptes.exists():
-            raise Conflit('Ce client a des comptes : ils doivent rester archivés, la fiche ne peut pas être supprimée.')
-        self.tracer(instance, 'client.supprime', f'Suppression de {instance.prenom} {instance.nom} ({instance.numero_client})')
-        instance.delete()
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def archiver(self, request, pk=None):
+        client = self.get_object()
+        verifier_agence(request.user, client.agence_id)
+        self.refuser_si_archive(client)
+        motif = (request.data.get('motif') or '').strip()
+        if not motif:
+            raise ValidationError({'motif': ['Indiquez le motif de l’archivage.']})
+        if client.comptes.filter(statut=StatutCompte.OUVERT).exists():
+            raise Conflit('Ce client a encore des comptes ouverts : clôturez-les avant d’archiver la fiche.')
+        client.archive = True
+        client.date_archivage = timezone.now()
+        client.archive_par = request.user
+        client.motif_archivage = motif[:255]
+        client.save(update_fields=['archive', 'date_archivage', 'archive_par', 'motif_archivage'])
+        self.tracer(client, 'client.archive', f'{client.numero_client} · archivé : {motif}')
+        return Response(self.get_serializer(client).data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def restaurer(self, request, pk=None):
+        client = self.get_object()
+        verifier_agence(request.user, client.agence_id)
+        if not client.archive:
+            raise Conflit('Ce client n’est pas archivé.')
+        client.archive = False
+        client.date_archivage = None
+        client.archive_par = None
+        client.motif_archivage = ''
+        client.save(update_fields=['archive', 'date_archivage', 'archive_par', 'motif_archivage'])
+        self.tracer(client, 'client.restaure', f'{client.numero_client} · fiche restaurée')
+        return Response(self.get_serializer(client).data)
 
     @action(detail=True, methods=['post'], url_path='changer-agence')
     @transaction.atomic
     def changer_agence(self, request, pk=None):
         client = self.get_object()
         verifier_agence(request.user, client.agence_id)
+        self.refuser_si_archive(client)
         agence_id = filtres.entier(request.data, 'agence')
         if not agence_id:
             raise ValidationError({'agence': ['Choisissez la nouvelle agence.']})
@@ -94,6 +132,10 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
             f'{client.numero_client} · {ancienne.nom} → {nouvelle.nom}' + (' (conseiller à redésigner)' if conseiller_retire else ''),
         )
         return Response(self.get_serializer(client).data)
+
+    def refuser_si_archive(self, client):
+        if client.archive:
+            raise Conflit('Ce client est archivé : restaurez sa fiche avant toute modification.')
 
     def tracer(self, client, action, resume):
         tracer(
