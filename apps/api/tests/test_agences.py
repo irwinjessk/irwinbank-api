@@ -98,3 +98,26 @@ class AgencesTests(ApiTestCase):
         self.connecter_agent(self.banque, self.cocody)
         response = self.client.get('/api/v1/auth/me')
         self.assertEqual((response.data['agence_id'], response.data['agence_nom']), (self.cocody.id, 'Cocody'))
+
+    def test_designer_un_conseiller_aux_clients_sans_conseiller(self):
+        sans = self.creer_client(self.banque, agence=self.cocody)
+        agent = self.connecter_agent(self.banque, self.cocody)
+        suivi = self.creer_client(self.banque, email='suivi@example.com', agence=self.cocody)
+        suivi.conseiller = agent
+        suivi.save()
+        self.client.force_authenticate(self.user)
+        response = self.client.get(f'/api/v1/clients/?agence={self.cocody.id}&sans_conseiller=1')
+        self.assertEqual([client['id'] for client in response.data], [sans.id])
+        designation = self.client.patch(f'/api/v1/clients/{sans.id}/', {'conseiller': agent.id}, format='json')
+        self.assertEqual((designation.status_code, designation.data['conseiller_nom']), (200, agent.username))
+        self.assertTrue(JournalAudit.objects.filter(action='client.modifie', entite_id=sans.id).exists())
+
+    def test_dashboard_filtre_par_agence(self):
+        compte = self.creer_compte(self.creer_client(self.banque, agence=self.cocody), '0.00')
+        self.creer_compte(self.creer_client(self.banque, email='p@example.com'), '0.00')
+        self.client.post('/api/v1/transactions/', {'type_transaction': 'DEPOT', 'compte': compte.id, 'montant': '40.00'}, format='json')
+        response = self.client.get(f'/api/v1/dashboard/?agence={self.cocody.id}')
+        depots = next(ligne for ligne in response.data['transactions_par_type'] if ligne['type'] == 'DEPOT')
+        self.assertEqual((depots['nombre'], depots['volume']), (1, '40.00'))
+        ouverts = next(ligne for ligne in response.data['comptes_par_statut'] if ligne['statut'] == 'OUVERT')
+        self.assertEqual(ouverts['nombre'], 1)

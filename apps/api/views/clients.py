@@ -30,6 +30,8 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(banque_id=banque)
         if agence:
             queryset = queryset.filter(agence_id=agence)
+        if params.get('sans_conseiller') in ('1', 'true'):
+            queryset = queryset.filter(conseiller__isnull=True)
         if nom:
             queryset = queryset.filter(Q(nom__icontains=nom) | Q(prenom__icontains=nom))
         if email:
