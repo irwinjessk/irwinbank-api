@@ -116,6 +116,7 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^https://[\w.-]+\.vercel\.app$',
 ]
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

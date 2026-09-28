@@ -8,20 +8,32 @@ from rest_framework.response import Response
 
 from apps.api import filtres
 from apps.api.exceptions import Conflit
+from apps.api.exports import Colonne, ExportMixin
+from apps.api.exports.mixin import choix, libelle_de
 from apps.api.perimetre import PerimetreMixin, verifier_agence, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.clients import ClientSerializer
 from apps.audit.services.journal import tracer
-from apps.banques.models import Agence
+from apps.banques.models import Agence, Banque
 from apps.clients.models import Client
 from apps.comptes.enums.compte import StatutCompte
 from apps.courrier.services.bienvenue import envoyer_bienvenue_client
 
 
-class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
+class ClientViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
     serializer_class = ClientSerializer
     permission_classes = [IsPersonnel]
     http_method_names = ['get', 'post', 'patch', 'put', 'head', 'options']
+    export_nom = 'clients'
+    export_titre = 'Clients'
+    export_filtres = {
+        'banque': ('Banque', libelle_de(Banque)),
+        'agence': ('Agence', libelle_de(Agence)),
+        'nom': ('Nom', None),
+        'email': ('E-mail', None),
+        'numero_client': ('Numéro', None),
+        'statut': ('Statut', choix({'actifs': 'actifs', 'archives': 'archivés', 'tous': 'tous'})),
+    }
 
     def get_queryset(self):
         queryset = self.restreindre(Client.objects.select_related('banque', 'agence', 'conseiller'))
@@ -31,7 +43,7 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
         nom = params.get('nom')
         email = params.get('email')
         numero = params.get('numero_client')
-        if self.action == 'list':
+        if self.action in ('list', 'export'):
             statut = params.get('statut', 'actifs')
             if statut == 'archives':
                 queryset = queryset.filter(archive=True)
@@ -50,6 +62,23 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
         if numero:
             queryset = queryset.filter(numero_client__icontains=numero)
         return queryset
+
+    def export_colonnes(self):
+        return [
+            Colonne('Numéro', lambda c: c.numero_client, largeur=1.4),
+            Colonne('Nom', lambda c: c.nom, largeur=1.3),
+            Colonne('Prénom', lambda c: c.prenom, largeur=1.3),
+            Colonne('E-mail', lambda c: c.email, largeur=2.2),
+            Colonne('Banque', lambda c: c.banque.nom, largeur=1.4),
+            Colonne('Agence', lambda c: c.agence.nom, largeur=1.4),
+            Colonne('Conseiller', lambda c: c.conseiller.username if c.conseiller_id else '', largeur=1.2),
+            Colonne('Statut', lambda c: 'Archivé' if c.archive else 'Actif', largeur=0.8),
+            Colonne('Inscrit le', lambda c: c.date_inscription, 'date', 1),
+        ]
+
+    def export_resume(self, clients):
+        archives = sum(1 for c in clients if c.archive)
+        return [('Clients', str(len(clients))), ('dont archivés', str(archives))]
 
     def perform_create(self, serializer):
         verifier_banque(self.request.user, serializer.validated_data['banque'].id)

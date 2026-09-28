@@ -1,9 +1,16 @@
+from decimal import Decimal
+
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.api import filtres
+from apps.api.exports import Colonne, ExportMixin
+from apps.api.exports.mixin import choix, jour_fr, libelle_de
 from apps.api.perimetre import PerimetreMixin, agence_agent, banque_agent
+from apps.banques.models import Banque
+from apps.clients.models import Client
+from apps.operations.enums.transaction import Sens, TypeTransaction
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.operations import TransactionSerializer
 from apps.comptes.models import Compte
@@ -12,6 +19,7 @@ from apps.operations.services.enregistrer import enregistrer
 
 
 class TransactionViewSet(
+    ExportMixin,
     PerimetreMixin,
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -21,6 +29,18 @@ class TransactionViewSet(
     serializer_class = TransactionSerializer
     permission_classes = [IsPersonnel]
     champ_banque = 'compte__client__banque_id'
+    export_nom = 'transactions'
+    export_titre = 'Historique des transactions'
+    export_filtres = {
+        'type': ('Type', choix(dict(TypeTransaction.choices))),
+        'compte': ('Compte', libelle_de(Compte, 'numero_compte')),
+        'client': ('Client', lambda valeur: str(Client.objects.filter(pk=valeur).first() or f'#{valeur}')),
+        'banque': ('Banque', libelle_de(Banque)),
+        'date_min': ('Du', jour_fr),
+        'date_max': ('Au', jour_fr),
+        'montant_min': ('Montant min', None),
+        'montant_max': ('Montant max', None),
+    }
 
     def get_queryset(self):
         queryset = self.restreindre(
@@ -51,6 +71,28 @@ class TransactionViewSet(
         if montant_max is not None:
             queryset = queryset.filter(montant__lte=montant_max)
         return queryset
+
+    def export_colonnes(self):
+        return [
+            Colonne('Date', lambda t: t.date_transaction, 'datetime', 1.3),
+            Colonne('Type', lambda t: t.get_type_transaction_display(), largeur=0.9),
+            Colonne('Sens', lambda t: t.get_sens_display(), largeur=0.7),
+            Colonne('Montant', lambda t: t.montant, 'montant', 1.2),
+            Colonne('Compte', lambda t: t.compte.numero_compte, largeur=1.6),
+            Colonne('Contrepartie', lambda t: t.compte_contrepartie.numero_compte if t.compte_contrepartie_id else '', largeur=1.6),
+            Colonne('Libellé', lambda t: t.description, largeur=2.2),
+            Colonne('Référence virement', lambda t: str(t.reference_virement)[:8] if t.reference_virement else '', largeur=1),
+        ]
+
+    def export_resume(self, transactions):
+        credits = sum((t.montant for t in transactions if t.sens == Sens.CREDIT), Decimal('0'))
+        debits = sum((t.montant for t in transactions if t.sens == Sens.DEBIT), Decimal('0'))
+        return [
+            ('Mouvements', str(len(transactions))),
+            ('Total crédité', credits),
+            ('Total débité', debits),
+            ('Solde des mouvements', credits - debits),
+        ]
 
     def create(self, request):
         compte_id = filtres.entier(request.data, 'compte')
