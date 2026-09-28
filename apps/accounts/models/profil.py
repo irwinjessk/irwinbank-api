@@ -26,6 +26,13 @@ class Profil(models.Model):
         on_delete=models.PROTECT,
         related_name='agents',
     )
+    client = models.OneToOneField(
+        'clients.Client',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='profil_en_ligne',
+    )
 
     class Meta:
         db_table = 'profil'
@@ -38,6 +45,10 @@ class Profil(models.Model):
                 raise ValidationError('L’agence choisie n’appartient pas à la banque de l’agent.')
         if self.role == Role.ADMIN and (self.banque_id or self.agence_id):
             raise ValidationError('Un administrateur n’est rattaché à aucune banque ni agence.')
+        if self.role == Role.CLIENT and (self.client_id is None or self.banque_id or self.agence_id):
+            raise ValidationError('Un profil client est lié à sa fiche client, sans banque ni agence de personnel.')
+        if self.role != Role.CLIENT and self.client_id:
+            raise ValidationError('Seul un profil client peut être lié à une fiche client.')
 
     def save(self, *args, **kwargs):
         if self.agence_id and not self.banque_id:

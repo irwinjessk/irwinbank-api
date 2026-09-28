@@ -6,6 +6,12 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from apps.accounts.services.espace_client import (
+    EspaceIndisponible,
+    desactiver_espace,
+    etat_espace,
+    ouvrir_espace,
+)
 from apps.api import filtres
 from apps.api.exceptions import Conflit
 from apps.api.exports import Colonne, ExportMixin
@@ -18,6 +24,7 @@ from apps.banques.models import Agence, Banque
 from apps.clients.models import Client
 from apps.comptes.enums.compte import StatutCompte
 from apps.courrier.services.bienvenue import envoyer_bienvenue_client
+from apps.courrier.services.espace_client import envoyer_code_activation
 
 
 class ClientViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
@@ -36,7 +43,9 @@ class ClientViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
     }
 
     def get_queryset(self):
-        queryset = self.restreindre(Client.objects.select_related('banque', 'agence', 'conseiller'))
+        queryset = self.restreindre(Client.objects.select_related(
+            'banque', 'agence', 'conseiller', 'profil_en_ligne__user__activation_espace',
+        ))
         params = self.request.query_params
         banque = filtres.entier(params, 'banque')
         agence = filtres.entier(params, 'agence')
@@ -120,6 +129,35 @@ class ClientViewSet(ExportMixin, PerimetreMixin, viewsets.ModelViewSet):
         client.motif_archivage = motif[:255]
         client.save(update_fields=['archive', 'date_archivage', 'archive_par', 'motif_archivage'])
         self.tracer(client, 'client.archive', f'{client.numero_client} · archivé : {motif}')
+        if desactiver_espace(client):
+            self.tracer(client, 'client.espace_desactive', f'{client.numero_client} · espace en ligne coupé (fiche archivée)')
+        return Response(self.get_serializer(client).data)
+
+    @action(detail=True, methods=['post'], url_path='activer-espace')
+    def activer_espace(self, request, pk=None):
+        client = self.get_object()
+        verifier_agence(request.user, client.agence_id)
+        self.refuser_si_archive(client)
+        deja = etat_espace(client)['statut']
+        try:
+            code, expire_le = ouvrir_espace(client, request.user)
+        except EspaceIndisponible as erreur:
+            raise Conflit(str(erreur))
+        libelle = 'nouveau code (accès réinitialisé)' if deja != 'AUCUN' else 'espace en ligne ouvert'
+        self.tracer(client, 'client.espace_code_genere', f'{client.numero_client} · {libelle}')
+        acteur = request.user
+        transaction.on_commit(lambda: envoyer_code_activation(client, code, expire_le, acteur))
+        client.refresh_from_db()
+        return Response({'code': code, 'expire_le': expire_le, 'client': self.get_serializer(client).data})
+
+    @action(detail=True, methods=['post'], url_path='desactiver-espace')
+    def desactiver_espace(self, request, pk=None):
+        client = self.get_object()
+        verifier_agence(request.user, client.agence_id)
+        if not desactiver_espace(client):
+            raise Conflit('Ce client n’a pas d’espace en ligne actif.')
+        self.tracer(client, 'client.espace_desactive', f'{client.numero_client} · espace en ligne désactivé')
+        client.refresh_from_db()
         return Response(self.get_serializer(client).data)
 
     @action(detail=True, methods=['post'])

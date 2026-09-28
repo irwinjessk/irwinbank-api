@@ -1,7 +1,7 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
-from apps.accounts.enums.role import Role
-from apps.api.perimetre import role_de
+from apps.accounts.enums.role import ROLES_PERSONNEL, Role
+from apps.api.perimetre import client_de, role_de
 
 
 class IsAdmin(BasePermission):
@@ -18,7 +18,17 @@ class IsPersonnel(BasePermission):
     message = 'Aucun rôle ADMIN ou AGENT n’est attribué à ce compte.'
 
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and role_de(request.user) is not None)
+        return bool(request.user and request.user.is_authenticated and role_de(request.user) in ROLES_PERSONNEL)
+
+
+class IsClient(BasePermission):
+    message = 'Espace réservé aux clients dont l’accès en ligne est actif.'
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        client = client_de(request.user)
+        return bool(client and not client.archive)
 
 
 class IsAdminOrReadOnly(BasePermission):

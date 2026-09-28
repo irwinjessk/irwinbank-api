@@ -30,3 +30,5 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      - key: FRONTEND_URL
+        sync: false

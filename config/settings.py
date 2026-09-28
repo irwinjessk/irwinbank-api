@@ -134,7 +134,12 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'EXCEPTION_HANDLER': 'apps.api.exceptions.gestionnaire_exceptions',
+    'DEFAULT_THROTTLE_RATES': {
+        'activation_espace': config('ACTIVATION_THROTTLE', default='20/hour'),
+    },
 }
+
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173').rstrip('/')
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(

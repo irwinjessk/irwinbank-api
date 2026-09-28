@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.accounts.enums.role import Role
+from apps.accounts.services.espace_client import etat_espace
 from apps.api.perimetre import agence_agent, role_de, verifier_banque
 from apps.banques.models.agence import AGENCE_PRINCIPALE, Agence
 from apps.clients.models import Client
@@ -12,15 +13,19 @@ class ClientSerializer(serializers.ModelSerializer):
     agence_nom = serializers.CharField(source='agence.nom', read_only=True)
     conseiller_nom = serializers.CharField(source='conseiller.username', read_only=True, default=None)
     archive_par_nom = serializers.CharField(source='archive_par.username', read_only=True, default=None)
+    espace = serializers.SerializerMethodField()
 
     class Meta:
         model = Client
         fields = (
             'id', 'nom', 'prenom', 'email', 'numero_client', 'banque', 'banque_nom',
             'agence', 'agence_nom', 'conseiller', 'conseiller_nom', 'date_inscription',
-            'archive', 'date_archivage', 'archive_par_nom', 'motif_archivage',
+            'archive', 'date_archivage', 'archive_par_nom', 'motif_archivage', 'espace',
         )
         read_only_fields = ('numero_client', 'date_inscription', 'archive', 'date_archivage', 'motif_archivage')
+
+    def get_espace(self, client):
+        return etat_espace(client)
 
     def validate_banque(self, banque):
         if self.instance and banque != self.instance.banque:

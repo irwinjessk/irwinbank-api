@@ -12,6 +12,13 @@ def role_de(user):
     return None
 
 
+def client_de(user):
+    """Fiche client liée à un compte de l'espace en ligne, sinon None."""
+    if role_de(user) == Role.CLIENT:
+        return user.profil.client
+    return None
+
+
 def banque_agent(user):
     """Banque imposée à l'utilisateur, ou None pour un administrateur."""
     if role_de(user) == Role.AGENT:
