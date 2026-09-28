@@ -38,6 +38,7 @@ class BienvenueTests(ApiTestCase):
         self.assertEqual(mail.outbox[0].to, ['awa@example.com'])
         self.assertIn(response.data['numero_client'], mail.outbox[0].body)
         self.assertIn('Agence principale', mail.outbox[0].body)
+        self.assertIn('application de démonstration (projet IRWIN BANK)', mail.outbox[0].body)
 
     def test_echec_d_envoi_n_annule_pas_l_inscription(self):
         banque = self.creer_banque()
