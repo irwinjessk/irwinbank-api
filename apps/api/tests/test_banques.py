@@ -3,7 +3,7 @@ from apps.api.tests.support import ApiTestCase
 
 class BanquesApiTests(ApiTestCase):
     def test_creation_banque(self):
-        response = self.client.post('/api/v1/banques/', {'nom': 'ADA', 'pays': 'Sénégal', 'ville': 'Dakar'})
+        response = self.client.post('/api/v1/banques/', {'nom': 'ADA', 'pays': 'Sénégal', 'ville': 'Dakar', 'email': 'contact@ada.sn'})
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['nombre_clients'], 0)
 

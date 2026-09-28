@@ -5,6 +5,7 @@ class Banque(models.Model):
     nom = models.CharField(max_length=150)
     pays = models.CharField(max_length=80, db_index=True)
     ville = models.CharField(max_length=80, db_index=True)
+    email = models.EmailField(blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     actif = models.BooleanField(default=True)
 

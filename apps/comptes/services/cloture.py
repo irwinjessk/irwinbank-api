@@ -51,7 +51,8 @@ def cloturer(compte, *, motif, mode_restitution=None, compte_destinataire_id=Non
 
     compte.statut = StatutCompte.CLOTURE
     compte.date_cloture = timezone.now()
-    compte.save(update_fields=['statut', 'date_cloture'])
+    compte.motif_cloture = motif
+    compte.save(update_fields=['statut', 'date_cloture', 'motif_cloture'])
     tracer(
         acteur=acteur if getattr(acteur, 'is_authenticated', False) else None,
         action='compte.cloture',

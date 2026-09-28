@@ -1,7 +1,7 @@
 from django.db import models
 
 from apps.clients.services.numeros import generer_numero
-from apps.comptes.enums.compte import StatutCompte, TypeCompte
+from apps.comptes.enums.compte import MotifCloture, StatutCompte, TypeCompte
 
 
 class Compte(models.Model):
@@ -20,6 +20,7 @@ class Compte(models.Model):
         default=StatutCompte.OUVERT,
     )
     date_cloture = models.DateTimeField(null=True, blank=True)
+    motif_cloture = models.CharField(max_length=30, choices=MotifCloture.choices, blank=True)
 
     class Meta:
         db_table = 'compte'

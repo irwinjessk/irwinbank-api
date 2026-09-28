@@ -22,8 +22,11 @@ class FactureViewSet(PerimetreMixin, viewsets.ReadOnlyModelViewSet):
         )
         params = self.request.query_params
         transaction = filtres.entier(params, 'transaction')
+        compte = filtres.entier(params, 'compte')
         if transaction:
             queryset = queryset.filter(transaction_id=transaction)
+        if compte:
+            queryset = queryset.filter(transaction__compte_id=compte)
         if params.get('statut_envoi'):
             queryset = queryset.filter(statut_envoi=params['statut_envoi'])
         if params.get('numero_facture'):

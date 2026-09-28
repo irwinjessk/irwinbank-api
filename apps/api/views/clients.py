@@ -15,6 +15,7 @@ from apps.audit.services.journal import tracer
 from apps.banques.models import Agence
 from apps.clients.models import Client
 from apps.comptes.enums.compte import StatutCompte
+from apps.courrier.services.bienvenue import envoyer_bienvenue_client
 
 
 class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
@@ -55,6 +56,8 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
         verifier_agence(self.request.user, serializer.validated_data['agence'].id)
         client = serializer.save()
         self.tracer(client, 'client.cree', f'Inscription de {client.prenom} {client.nom} ({client.numero_client}) à {client.agence.nom}')
+        acteur = self.request.user
+        transaction.on_commit(lambda: envoyer_bienvenue_client(client, acteur))
 
     def perform_update(self, serializer):
         client = serializer.instance

@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -8,6 +9,7 @@ from apps.api.perimetre import PerimetreMixin, banque_agent
 from apps.api.permissions import IsAdminOrReadOnly
 from apps.api.serializers.banques import BanqueSerializer
 from apps.banques.models import Banque
+from apps.courrier.services.bienvenue import envoyer_bienvenue_banque
 
 
 class BanqueViewSet(PerimetreMixin, viewsets.ModelViewSet):
@@ -25,6 +27,11 @@ class BanqueViewSet(PerimetreMixin, viewsets.ModelViewSet):
         if ville:
             queryset = queryset.filter(ville__icontains=ville)
         return queryset
+
+    def perform_create(self, serializer):
+        banque = serializer.save()
+        acteur = self.request.user
+        transaction.on_commit(lambda: envoyer_bienvenue_banque(banque, acteur))
 
     @action(detail=False, methods=['get'])
     def top(self, request):
