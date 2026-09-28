@@ -22,6 +22,11 @@ class AgenceSerializer(serializers.ModelSerializer):
         return banque
 
     def validate(self, attrs):
+        if self.instance and self.instance.est_principale:
+            if attrs.get('nom', self.instance.nom) != self.instance.nom:
+                raise serializers.ValidationError({'nom': ['L’agence principale ne peut pas être renommée.']})
+            if attrs.get('actif') is False:
+                raise serializers.ValidationError({'actif': ['L’agence principale ne peut pas être désactivée.']})
         banque = attrs.get('banque') or self.instance.banque
         nom = attrs.get('nom') or self.instance.nom
         doublons = Agence.objects.filter(banque=banque, nom__iexact=nom)

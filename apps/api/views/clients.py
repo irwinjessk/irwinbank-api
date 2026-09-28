@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.api import filtres
+from apps.api.exceptions import Conflit
 from apps.api.perimetre import PerimetreMixin, verifier_agence, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.clients import ClientSerializer
@@ -62,6 +63,9 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         verifier_agence(self.request.user, instance.agence_id)
+        if instance.comptes.exists():
+            raise Conflit('Ce client a des comptes : ils doivent rester archivés, la fiche ne peut pas être supprimée.')
+        self.tracer(instance, 'client.supprime', f'Suppression de {instance.prenom} {instance.nom} ({instance.numero_client})')
         instance.delete()
 
     @action(detail=True, methods=['post'], url_path='changer-agence')

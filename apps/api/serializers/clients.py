@@ -44,6 +44,10 @@ class ClientSerializer(serializers.ModelSerializer):
                 if attrs['agence'] is None:
                     raise serializers.ValidationError({'agence': ['Cette banque n’a aucune agence.']})
         agence = attrs.get('agence') or self.instance.agence
+        if not self.instance and not banque.actif:
+            raise serializers.ValidationError({'banque': ['Cette banque est désactivée.']})
+        if not self.instance and not agence.actif:
+            raise serializers.ValidationError({'agence': ['Cette agence est désactivée.']})
         if agence.banque_id != banque.id:
             raise serializers.ValidationError({'agence': ['Cette agence n’appartient pas à la banque du client.']})
 

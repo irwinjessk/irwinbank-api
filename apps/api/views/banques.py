@@ -1,9 +1,11 @@
+from django.db import transaction
 from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from apps.api.exceptions import Conflit
 from apps.api.perimetre import PerimetreMixin, banque_agent
 from apps.api.permissions import IsAdminOrReadOnly
 from apps.api.serializers.banques import BanqueSerializer
@@ -24,6 +26,13 @@ class BanqueViewSet(PerimetreMixin, viewsets.ModelViewSet):
         if ville:
             queryset = queryset.filter(ville__icontains=ville)
         return queryset
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        if instance.clients.exists() or instance.agents.exists():
+            raise Conflit('Cette banque a des clients ou des agents : désactivez-la plutôt que de la supprimer.')
+        instance.agences.all().delete()
+        instance.delete()
 
     @action(detail=False, methods=['get'])
     def top(self, request):

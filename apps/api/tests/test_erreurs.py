@@ -31,7 +31,7 @@ class ErreursApiTests(ApiTestCase):
     def test_suppression_protegee_renvoie_409(self):
         response = self.client.delete(f'/api/v1/banques/{self.banque.id}/')
         self.assertEqual(response.status_code, 409)
-        self.assertIn('liés', response.data['detail'])
+        self.assertIn('désactivez-la', response.data['detail'])
 
     def test_message_agent_sur_action_admin(self):
         self.connecter_agent(self.banque)
