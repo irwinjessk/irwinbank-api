@@ -28,6 +28,7 @@ class TransactionViewSet(
         )
         params = self.request.query_params
         compte = filtres.entier(params, 'compte')
+        client = filtres.entier(params, 'client')
         banque = filtres.entier(params, 'banque')
         date_min = filtres.jour(params, 'date_min')
         date_max = filtres.jour(params, 'date_max')
@@ -35,6 +36,8 @@ class TransactionViewSet(
         montant_max = filtres.decimal(params, 'montant_max')
         if compte:
             queryset = queryset.filter(compte_id=compte)
+        if client:
+            queryset = queryset.filter(compte__client_id=client)
         if params.get('type'):
             queryset = queryset.filter(type_transaction=params['type'])
         if banque and banque_agent(self.request.user) is None:

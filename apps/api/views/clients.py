@@ -5,6 +5,7 @@ from apps.api import filtres
 from apps.api.perimetre import PerimetreMixin, verifier_banque
 from apps.api.permissions import IsPersonnel
 from apps.api.serializers.clients import ClientSerializer
+from apps.audit.services.journal import tracer
 from apps.clients.models import Client
 
 
@@ -30,10 +31,26 @@ class ClientViewSet(PerimetreMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         verifier_banque(self.request.user, serializer.validated_data['banque'].id)
-        serializer.save()
+        client = serializer.save()
+        self.tracer(client, 'client.cree', f'Inscription de {client.prenom} {client.nom} ({client.numero_client})')
 
     def perform_update(self, serializer):
-        banque = serializer.validated_data.get('banque')
-        if banque:
-            verifier_banque(self.request.user, banque.id)
-        serializer.save()
+        avant = {champ: getattr(serializer.instance, champ) for champ in ('nom', 'prenom', 'email')}
+        client = serializer.save()
+        changements = [
+            f'{champ} : {avant[champ]} → {getattr(client, champ)}'
+            for champ in avant
+            if avant[champ] != getattr(client, champ)
+        ]
+        if changements:
+            self.tracer(client, 'client.modifie', f'{client.numero_client} · ' + ', '.join(changements))
+
+    def tracer(self, client, action, resume):
+        tracer(
+            acteur=self.request.user,
+            action=action,
+            entite='client',
+            entite_id=client.id,
+            resume=resume[:255],
+            banque=client.banque,
+        )
