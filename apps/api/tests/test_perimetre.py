@@ -18,6 +18,9 @@ class PerimetreAgentTests(ApiTestCase):
         self.assertEqual(len(self.client.get('/api/v1/clients/').data), 1)
         self.assertEqual(len(self.client.get('/api/v1/comptes/').data), 1)
 
+    def test_top_banques_reserve_a_l_admin(self):
+        self.assertEqual(self.client.get('/api/v1/banques/top/').status_code, 403)
+
     def test_agent_ne_cree_pas_de_banque(self):
         response = self.client.post('/api/v1/banques/', {'nom': 'X', 'pays': 'CI', 'ville': 'Abidjan'})
         self.assertEqual(response.status_code, 403)
