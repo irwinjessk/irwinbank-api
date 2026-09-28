@@ -24,3 +24,9 @@ services:
         value: "True"
       - key: DEMO_PASSWORD
         sync: false
+      - key: EMAIL_BACKEND
+        value: apps.courrier.backends.brevo.BrevoEmailBackend
+      - key: BREVO_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
